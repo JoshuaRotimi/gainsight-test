@@ -1,5 +1,4 @@
 import React, {useState, useEffect, useCallback} from "react";
-import './App.css';
 import {Box, Heading, Text, Flex, Input, Button, Link} from '@chakra-ui/react';
 import Item from "./components/Item/Item";
 import {Octokit} from "octokit";
@@ -13,27 +12,21 @@ function App() {
 
 
     const connectKey = window.localStorage.getItem('accessKey');
- //   console.log(connectKey, 'connector');
-
-
-    const ACCESS_TOKEN = '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';
-    const REPO_NAME = 'typing-test';
-
-
-    const octokit = new Octokit({ auth: ACCESS_TOKEN });
+    const REPO_NAME = 'gainsight-test';
 
     const getData = async () => {
         try {
+            if (!connectKey) {
+                setError('Inavlid access token.')
+            }
             setError('');
             setLoading(true);
-           const {data: { login }} = await octokit.rest.users.getAuthenticated();
-           console.log("Hello, %s", login);
 
+            const octokit = new Octokit({ auth: connectKey ? connectKey : '' });
             const info = await octokit.request('GET /repos/{owner}/{repo}/commits', {
                 owner: 'JoshuaRotimi',
                 repo: REPO_NAME
             });
-            console.log(info.data);
             setData(info.data);
             setLoading(false);
 
@@ -53,24 +46,25 @@ function App() {
     };
 
     const handleClick = ()  => {
-        const saveToken = window.localStorage.setItem('accessKey', token);
+        window.localStorage.setItem('accessKey', token);
+        getData();
+        setToken('');
 
     };
 
     const handleRefresh = useCallback(() => {
         getData();
-    }, []);
+    }, [connectKey]);
 
     useEffect(() => {
         getData();
-    }, []);
+    }, [connectKey]);
 
     useEffect(() => {
         const interval = setInterval(() => {
-            console.log('Logs every minute');
             setCountDown((prevState) => {
                 if (prevState === 0) {
-                    getData();
+                    handleRefresh();
                     setCountDown(30);
                 } else {
                     return prevState - 1
@@ -82,7 +76,7 @@ function App() {
     }, []);
 
   return (
-      <Box p={'10px'} w={'50%'} m={'10px auto'} textAlign={'center'}>
+      <Box p={'10px'} w={'80%'} m={'10px auto'} textAlign={'center'}>
           <Heading m={'10px 0'}>Gainsight Project</Heading>
           <Text
               p={'20px 0'}
@@ -99,10 +93,10 @@ function App() {
                           <Input textAlign='left'
                                  fontSize='14px'
                                  placeholder='Enter Token'
-                                 value={token} type={'text'}
+                                 type={'text'}
                                  onChange={handleChange}
                           />
-                          <Button colorScheme={'teal'} m={'0 10px'}>Submit</Button>
+                          <Button colorScheme={'teal'} m={'0 10px'} onClick={handleClick}>Submit</Button>
                       </Flex>
                   </Box>)
           }
@@ -115,10 +109,10 @@ function App() {
 
               {loading && <Text p={'20px 0'}>Loading... Please wait.</Text>}
 
-              {error && <Text p={'20px 0'}>{error}</Text>}
+              { error ? <Text p={'20px 0'}>{error}</Text> : null}
 
               {data && data.map((item, index) => (
-                  <Item key={index} data={item}/>
+                  <Item key={index} data={item} index={index}/>
               ))}
           </Flex>
 
